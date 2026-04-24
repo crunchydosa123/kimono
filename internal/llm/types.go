@@ -1,11 +1,31 @@
 package llm
 
-type Response struct {
-	Text     string
-	ToolCall *ToolCall
-}
+import "encoding/json"
+
+type FinishReason string
+
+const (
+	FinishStop     FinishReason = "stop"
+	FinishToolCall FinishReason = "tool_call"
+	FinishLength   FinishReason = "length"
+)
 
 type ToolCall struct {
 	Name string
-	Args map[string]any
+	Args json.RawMessage
+}
+
+type Part struct {
+	Text     *string
+	ToolCall *ToolCall
+}
+
+type Candidate struct {
+	Role         string
+	Parts        []Part
+	FinishReason string // "stop", "tool_call", "length", etc.
+}
+
+type LLMResponse struct {
+	Candidates []Candidate
 }

@@ -2,6 +2,7 @@ package tool
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 )
 
@@ -15,12 +16,17 @@ func (w *WriteFile) Description() string {
 	return "Writes content to a file. Input: JSON {\"path\": \"\", \"content\": \"\"}"
 }
 
-func (w *WriteFile) Run(ctx context.Context, input string) (string, error) {
-	// later: parse JSON properly
-	path := "output.txt"
-	content := input
+func (t *WriteFile) Run(ctx context.Context, input string) (string, error) {
+	var args struct {
+		Path    string `json:"path"`
+		Content string `json:"content"`
+	}
 
-	err := os.WriteFile(path, []byte(content), 0644)
+	if err := json.Unmarshal([]byte(input), &args); err != nil {
+		return "", err
+	}
+
+	err := os.WriteFile(args.Path, []byte(args.Content), 0644)
 	if err != nil {
 		return "", err
 	}

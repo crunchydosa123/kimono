@@ -12,5 +12,5 @@ type Message struct {
 }
 
 type LLM interface {
-	ChatCompletion(ctx context.Context, messages []Message, tools []tool.Tool) (string, error)
+	ChatCompletion(ctx context.Context, messages []Message, tools []tool.Tool) (LLMResponse, error)
 }

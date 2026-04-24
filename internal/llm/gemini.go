@@ -2,7 +2,7 @@ package llm
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 
 	"github.com/crunchydosa123/kimono/internal/tool"
 	"google.golang.org/genai"
@@ -32,7 +32,7 @@ func (g *Gemini) ChatCompletion(
 	ctx context.Context,
 	messages []Message,
 	tools []tool.Tool,
-) (string, error) {
+) (LLMResponse, error) {
 
 	var contents []*genai.Content
 
@@ -50,7 +50,7 @@ func (g *Gemini) ChatCompletion(
 		})
 	}
 
-	// ✅ attach tools
+	// attach tools
 	config := &genai.GenerateContentConfig{}
 	if len(tools) > 0 {
 		config.Tools = tool.ToGeminiTools(tools)
@@ -60,55 +60,43 @@ func (g *Gemini) ChatCompletion(
 		ctx,
 		g.model,
 		contents,
-		config, // 👈 pass config instead of nil
+		config,
 	)
 	if err != nil {
-		return "", err
+		return LLMResponse{}, err
 	}
 
-	fmt.Println("---- GEMINI RESPONSE ----")
+	var llmRes LLMResponse
 
-	for i, c := range resp.Candidates {
-		fmt.Printf("Candidate %d:\n", i)
+	for _, c := range resp.Candidates {
+		var parts []Part
 
-		if c.Content == nil {
-			fmt.Println("  ❌ No content")
-			continue
-		}
-
-		fmt.Println("  Role:", c.Content.Role)
-
-		for j, p := range c.Content.Parts {
-			fmt.Printf("  Part %d:\n", j)
+		for _, p := range c.Content.Parts {
+			part := Part{}
 
 			if p.Text != "" {
-				fmt.Println("    Text:", p.Text)
+				part.Text = &p.Text
 			}
 
 			if p.FunctionCall != nil {
-				fmt.Println("    🔥 Function Call:")
-				fmt.Println("      Name:", p.FunctionCall.Name)
-				fmt.Println("      Args:", p.FunctionCall.Args)
+				argsBytes, _ := json.Marshal(p.FunctionCall.Args)
+
+				part.ToolCall = &ToolCall{
+					Name: p.FunctionCall.Name,
+					Args: argsBytes,
+				}
 			}
 
-			if p.FunctionResponse != nil {
-				fmt.Println("    Function Response:", p.FunctionResponse)
-			}
+			parts = append(parts, part)
 		}
+
+		llmRes.Candidates = append(llmRes.Candidates, Candidate{
+			Role:         c.Content.Role,
+			Parts:        parts,
+			FinishReason: string(c.FinishReason),
+		})
 	}
 
-	fmt.Println("--------------------------")
-	// ⚠️ still only returns text (no tool handling yet)
-	for _, c := range resp.Candidates {
-		if c.Content == nil {
-			continue
-		}
-		for _, p := range c.Content.Parts {
-			if p.Text != "" {
-				return p.Text, nil
-			}
-		}
-	}
+	return llmRes, nil
 
-	return "", fmt.Errorf("empty response")
 }

@@ -1,5 +1,11 @@
 package tool
 
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+)
+
 type Registry struct {
 	tools map[string]Tool
 }
@@ -25,4 +31,14 @@ func (r *Registry) All() []Tool {
 		out = append(out, t)
 	}
 	return out
+}
+
+func (r *Registry) Execute(toolName string, toolArgs json.RawMessage) (string, error) {
+	t, ok := r.tools[toolName]
+	if !ok {
+		return "", fmt.Errorf("tool not found: %s", toolName)
+	}
+
+	// pass raw JSON as string
+	return t.Run(context.Background(), string(toolArgs))
 }
