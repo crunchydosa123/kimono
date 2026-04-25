@@ -16,7 +16,7 @@ func (w *WriteFile) Description() string {
 	return "Writes content to a file. Input: JSON {\"path\": \"\", \"content\": \"\"}"
 }
 
-func (t *WriteFile) Run(ctx context.Context, input string) (string, error) {
+func (t *WriteFile) Run(ctx context.Context, input json.RawMessage) (string, error) {
 	var args struct {
 		Path    string `json:"path"`
 		Content string `json:"content"`
