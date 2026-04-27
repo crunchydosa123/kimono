@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/crunchydosa123/kimono/agent"
+	chatsession "github.com/crunchydosa123/kimono/chat_session"
 	"github.com/crunchydosa123/kimono/internal/llm"
 	"github.com/crunchydosa123/kimono/internal/tool"
 )
@@ -30,6 +30,16 @@ Available tools:
 Rules:
 - Only use the tools listed above
 - Do NOT call any other tools
+
+You can suggest terminal commands using the suggest_command tool.
+
+Rules:
+- DO NOT assume commands are executed automatically
+- Only suggest commands when needed
+- Prefer safe commands like:
+  - go build
+  - go run
+  - ls
 `
 
 	model = gemini
@@ -37,6 +47,8 @@ Rules:
 	registry := tool.NewRegistry()
 	registry.Register(&tool.WriteFile{})
 	registry.Register(&tool.EditFile{})
+	registry.Register(&tool.SearchCode{})
+	registry.Register(&tool.SuggestCommand{})
 
 	messages := []llm.Message{
 		{
@@ -45,7 +57,7 @@ Rules:
 		},
 		{
 			Role:    "user",
-			Content: "Edit hello.go, understand what it does and without editing its main functionality fix any errors you see pertaining to syntax",
+			Content: "give me the list of all files in internal",
 		},
 	}
 
@@ -54,10 +66,14 @@ Rules:
 
 	agent := agent.New(model, registry)
 
-	res, err := agent.Run(ctx, messages)
+	chat := chatsession.NewChatSession(agent, messages)
+
+	chat.Start(ctx)
+
+	/*res, err := agent.Run(ctx, messages)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Final response:", res)
+	fmt.Println("Final response:", res)*/
 }

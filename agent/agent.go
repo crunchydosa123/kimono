@@ -3,22 +3,26 @@ package agent
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/crunchydosa123/kimono/internal/llm"
 	"github.com/crunchydosa123/kimono/internal/tool"
 )
 
 type Agent struct {
-	model    llm.LLM
-	registry *tool.Registry
-	maxSteps int
+	model      llm.LLM
+	registry   *tool.Registry
+	maxSteps   int
+	confirmCmd func(string) (string, error)
 }
 
 func New(model llm.LLM, registry *tool.Registry) *Agent {
 	return &Agent{
-		model:    model,
-		registry: registry,
-		maxSteps: 10, // safety limit
+		model:      model,
+		registry:   registry,
+		maxSteps:   10, // safety limit
+		confirmCmd: defaultConfirmCmd,
 	}
 }
 
@@ -54,7 +58,32 @@ func (a *Agent) Run(
 					string(p.ToolCall.Args),
 				)
 
-				result, err := a.registry.Execute(ctx, p.ToolCall.Name, p.ToolCall.Args)
+				var result string
+				var err error
+
+				if strings.ToLower(p.ToolCall.Name) == "suggest_command" {
+					// get command from tool
+					cmd, err := a.registry.Execute(ctx, p.ToolCall.Name, p.ToolCall.Args)
+					if err != nil {
+						fmt.Println("Tool error:", err)
+						continue
+					}
+
+					fmt.Println("🚨 INTERCEPTING suggest_command")
+
+					// 👇 THIS triggers your TUI
+					result, err = a.confirmCmd(cmd)
+					if err != nil {
+						fmt.Println("Command error:", err)
+						continue
+					}
+				} else {
+					result, err = a.registry.Execute(ctx, p.ToolCall.Name, p.ToolCall.Args)
+					if err != nil {
+						fmt.Println("Tool error:", err)
+						continue
+					}
+				}
 				if err != nil {
 					fmt.Println("Tool error:", err)
 					continue
@@ -79,4 +108,22 @@ func (a *Agent) Run(
 	}
 
 	return llm.LLMResponse{}, fmt.Errorf("max steps exceeded")
+}
+
+func defaultConfirmCmd(cmd string) (string, error) {
+	fmt.Printf("\n⚡ Suggested command:\n%s\n", cmd)
+	fmt.Print("Run this? (y/n): ")
+
+	var input string
+	fmt.Scanln(&input)
+
+	if input != "y" {
+		return "command skipped by user", nil
+	}
+
+	parts := strings.Fields(cmd)
+	c := exec.Command(parts[0], parts[1:]...)
+	out, err := c.CombinedOutput()
+
+	return string(out), err
 }

@@ -24,7 +24,7 @@ func NewGemini(apiKey string) (*Gemini, error) {
 
 	return &Gemini{
 		client: client,
-		model:  "gemini-flash-latest",
+		model:  "gemini-2.5-flash",
 	}, nil
 }
 
