@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/crunchydosa123/kimono/internal/tool"
 	"google.golang.org/genai"
@@ -99,4 +100,40 @@ func (g *Gemini) ChatCompletion(
 
 	return llmRes, nil
 
+}
+
+func (g *Gemini) GeneratePlan(ctx context.Context, message Message) (string, error) {
+	planPrompt := `
+You are a planning agent.
+
+Given a user request, generate a clear execution plan.
+
+Rules:
+- Output ONLY numbered steps
+- Each step must be actionable
+- Avoid redundancy
+- Choose ONE approach (do not mix strategies)
+- Prefer CLI commands when applicable
+`
+
+	messages := []Message{
+		{Role: "system", Content: planPrompt},
+		{Role: "user", Content: message.Content},
+	}
+
+	resp, err := g.ChatCompletion(ctx, messages, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Parts) == 0 {
+		return "", fmt.Errorf("no plan generated")
+	}
+
+	part := resp.Candidates[0].Parts[0]
+	if part.Text == nil {
+		return "", fmt.Errorf("plan response not text")
+	}
+
+	return *part.Text, nil
 }

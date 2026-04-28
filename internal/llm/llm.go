@@ -13,4 +13,5 @@ type Message struct {
 
 type LLM interface {
 	ChatCompletion(ctx context.Context, messages []Message, tools []tool.Tool) (LLMResponse, error)
+	GeneratePlan(ctx context.Context, message Message) (LLMResponse, error)
 }
