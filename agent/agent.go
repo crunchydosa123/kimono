@@ -53,7 +53,7 @@ func (a *Agent) Run(
 			if p.ToolCall != nil {
 				toolExecuted = true
 
-				fmt.Printf("🔧 Executing: %s %s\n",
+				fmt.Printf("Executing: %s %s\n",
 					p.ToolCall.Name,
 					string(p.ToolCall.Args),
 				)
@@ -69,7 +69,7 @@ func (a *Agent) Run(
 						continue
 					}
 
-					fmt.Println("🚨 INTERCEPTING suggest_command")
+					fmt.Println("INTERCEPTING suggest_command")
 
 					// 👇 THIS triggers your TUI
 					result, err = a.confirmCmd(cmd)
@@ -126,4 +126,8 @@ func defaultConfirmCmd(cmd string) (string, error) {
 	out, err := c.CombinedOutput()
 
 	return string(out), err
+}
+
+func (a *Agent) GeneratePlan(ctx context.Context, message llm.Message) (llm.LLMResponse, error) {
+	return a.model.GeneratePlan(ctx, message)
 }

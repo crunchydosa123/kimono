@@ -102,7 +102,7 @@ func (g *Gemini) ChatCompletion(
 
 }
 
-func (g *Gemini) GeneratePlan(ctx context.Context, message Message) (string, error) {
+func (g *Gemini) GeneratePlan(ctx context.Context, message Message) (LLMResponse, error) {
 	planPrompt := `
 You are a planning agent.
 
@@ -123,17 +123,27 @@ Rules:
 
 	resp, err := g.ChatCompletion(ctx, messages, nil)
 	if err != nil {
-		return "", err
+		return LLMResponse{}, err
 	}
 
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Parts) == 0 {
-		return "", fmt.Errorf("no plan generated")
+		return LLMResponse{}, fmt.Errorf("no plan generated")
 	}
 
 	part := resp.Candidates[0].Parts[0]
 	if part.Text == nil {
-		return "", fmt.Errorf("plan response not text")
+		return LLMResponse{}, fmt.Errorf("plan response not text")
 	}
 
-	return *part.Text, nil
+	return LLMResponse{
+		Candidates: []Candidate{
+			{
+				Parts: []Part{
+					{
+						Text: part.Text,
+					},
+				},
+			},
+		},
+	}, nil
 }

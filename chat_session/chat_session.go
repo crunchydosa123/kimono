@@ -38,13 +38,43 @@ func (c *ChatSession) Start(ctx context.Context) {
 			break
 		}
 
-		// add user message
-		c.messages = append(c.messages, llm.Message{
+		// -------------------------
+		// 1. Generate plan
+		// -------------------------
+		plan, err := c.agent.GeneratePlan(ctx, llm.Message{
 			Role:    "user",
 			Content: input,
 		})
+		if err != nil {
+			fmt.Println("Plan error:", err)
+			continue
+		}
 
-		// run agent
+		fmt.Println("\n🧠 Plan:")
+		fmt.Println(plan)
+
+		// -------------------------
+		// 2. Enhance query with plan
+		// -------------------------
+		enhanced := fmt.Sprintf(`
+User request:
+%s
+
+Execution plan:
+%s
+
+Follow this plan step-by-step. Do not repeat steps or mix strategies.
+`, input, plan)
+
+		// add enhanced message instead of raw input
+		c.messages = append(c.messages, llm.Message{
+			Role:    "user",
+			Content: enhanced,
+		})
+
+		// -------------------------
+		// 3. Run agent
+		// -------------------------
 		res, err := c.agent.Run(ctx, c.messages)
 		if err != nil {
 			fmt.Println("Error:", err)
@@ -59,9 +89,12 @@ func (c *ChatSession) Start(ctx context.Context) {
 			}
 		}
 
+		fmt.Println("\n🤖 Answer:")
 		fmt.Println(reply)
 
-		// append assistant reply back into memory
+		// -------------------------
+		// 4. Store assistant reply
+		// -------------------------
 		c.messages = append(c.messages, llm.Message{
 			Role:    "assistant",
 			Content: reply,
