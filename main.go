@@ -69,11 +69,4 @@ Rules:
 	chat := chatsession.NewChatSession(agent, messages)
 
 	chat.Start(ctx)
-
-	/*res, err := agent.Run(ctx, messages)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Final response:", res)*/
 }
