@@ -104,4 +104,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - Powered by [Google Gemini](https://ai.google.dev/)
 - Built with [Go](https://golang.org/)</content>
-<parameter name="filePath">/Users/prathamgadkari/Projects/kimono/README.md
